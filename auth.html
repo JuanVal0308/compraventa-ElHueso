@@ -152,13 +152,17 @@
               'apikey': SUPABASE_ANON_KEY,
               'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ 
+              email, 
+              password,
+              grant_type: 'password'
+            })
           });
           
           const data = await response.json();
           
           if (!response.ok) {
-            throw new Error(data.msg || data.message || 'Error en el login');
+            throw new Error(data.msg || data.message || data.error_description || 'Error en el login');
           }
           
           return { data, error: null };
@@ -270,7 +274,16 @@
       try {
         const { data, error } = await window.supabaseAuth.signIn(email, password);
         if (error) {
-          showMessage('si-msg', error.message, true);
+          console.error('Error en login:', error);
+          
+          // Manejar errores específicos
+          if (error.message.includes('Invalid login credentials')) {
+            showMessage('si-msg', 'Email o contraseña incorrectos', true);
+          } else if (error.message.includes('Email not confirmed')) {
+            showMessage('si-msg', 'Por favor confirma tu email antes de iniciar sesión', true);
+          } else {
+            showMessage('si-msg', `Error: ${error.message}`, true);
+          }
         } else {
           showMessage('si-msg', '¡Bienvenido! Redirigiendo...');
           setTimeout(() => {
@@ -278,6 +291,7 @@
           }, 1000);
         }
       } catch (err) {
+        console.error('Error catch en login:', err);
         showMessage('si-msg', 'Error de conexión. Intenta nuevamente.', true);
       }
     });
