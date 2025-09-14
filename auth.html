@@ -111,20 +111,64 @@
     </nav>
     <h1><i class="fas fa-lock"></i> Autenticación</h1>
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Inicialización de Supabase -->
+  <!-- API de Supabase directa -->
   <script>
     // Configuración de Supabase
     const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
     
-    // Inicializar Supabase
-    window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Función para hacer peticiones a Supabase Auth
+    window.supabaseAuth = {
+      async signUp(email, password) {
+        try {
+          const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.msg || data.message || 'Error en el registro');
+          }
+          
+          return { data, error: null };
+        } catch (error) {
+          return { data: null, error: { message: error.message } };
+        }
+      },
+      
+      async signIn(email, password) {
+        try {
+          const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.msg || data.message || 'Error en el login');
+          }
+          
+          return { data, error: null };
+        } catch (error) {
+          return { data: null, error: { message: error.message } };
+        }
+      }
+    };
     
-    console.log('✅ Supabase inicializado correctamente');
-    console.log('Cliente:', window.sb);
+    console.log('✅ API de Supabase configurada correctamente');
   </script>
 
     <!-- Registro -->
@@ -184,12 +228,6 @@
       }
       
       try {
-        // Verificar que el cliente de Supabase esté disponible
-        if (!window.sb) {
-          showMessage('su-msg', 'Error: Cliente de Supabase no inicializado', true);
-          return;
-        }
-        
         // Validar formato de email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -198,7 +236,7 @@
         }
         
         console.log('Intentando crear usuario con:', { email, password: '***' });
-        const { data, error } = await window.sb.auth.signUp({ email, password });
+        const { data, error } = await window.supabaseAuth.signUp(email, password);
         
         console.log('Respuesta de signUp:', { data, error });
         
@@ -206,7 +244,7 @@
           console.error('Error en signUp:', error);
           
           // Manejar errores específicos
-          if (error.message.includes('already registered')) {
+          if (error.message.includes('already registered') || error.message.includes('already exists')) {
             showMessage('su-msg', 'Este email ya está registrado. Intenta iniciar sesión.', true);
           } else if (error.message.includes('invalid')) {
             showMessage('su-msg', 'Email o contraseña inválidos. Verifica los datos.', true);
@@ -230,7 +268,7 @@
       const password = document.getElementById('si-pass').value;
       
       try {
-        const { error } = await window.sb.auth.signInWithPassword({ email, password });
+        const { data, error } = await window.supabaseAuth.signIn(email, password);
         if (error) {
           showMessage('si-msg', error.message, true);
         } else {
