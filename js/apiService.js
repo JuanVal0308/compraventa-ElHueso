@@ -1,13 +1,14 @@
 // Servicio de API usando Axios para peticiones HTTP
 import axios from 'axios';
+import { config } from './config.js';
 
 // Configuración base de Axios
 const api = axios.create({
-  baseURL: 'https://sppzbrmslxadplopnker.supabase.co/rest/v1',
+  baseURL: `${config.supabase.url}/rest/v1`,
   headers: {
     'Content-Type': 'application/json',
-    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5NzQ4MDAsImV4cCI6MjA1MTU1MDgwMH0.8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5NzQ4MDAsImV4cCI6MjA1MTU1MDgwMH0.8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q'
+    'apikey': config.supabase.anonKey,
+    'Authorization': `Bearer ${config.supabase.anonKey}`
   }
 });
 
