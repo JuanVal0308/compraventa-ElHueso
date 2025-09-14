@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Autenticado - CompraVenta El Hueso</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        .form-group { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Autenticado de Vehículos</h1>
+        <p>Este script probará las operaciones CRUD estando autenticado.</p>
+        
+        <div class="form-group">
+            <h3>1. Autenticación</h3>
+            <input type="email" id="email" placeholder="Email" value="test@example.com">
+            <input type="password" id="password" placeholder="Password" value="123456">
+            <button onclick="login()">Iniciar Sesión</button>
+            <button onclick="logout()">Cerrar Sesión</button>
+        </div>
+        
+        <div class="form-group">
+            <h3>2. Test de Vehículos</h3>
+            <button onclick="testCRUD()">Probar CRUD Autenticado</button>
+            <button onclick="listVehicles()">Listar Vehículos</button>
+        </div>
+        
+        <div class="form-group">
+            <h3>3. Agregar Vehículo</h3>
+            <input type="text" id="marca" placeholder="Marca" value="Toyota">
+            <input type="text" id="modelo" placeholder="Modelo" value="Corolla">
+            <input type="number" id="anio" placeholder="Año" value="2023">
+            <input type="number" id="precio" placeholder="Precio" value="25000">
+            <input type="text" id="descripcion" placeholder="Descripción" value="Vehículo de prueba">
+            <button onclick="addVehicle()">Agregar Vehículo</button>
+        </div>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
+        
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log(`🔐 Intentando login con: ${email}`);
+            
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) {
+                    log(`❌ Error en login: ${error.message}`, 'error');
+                } else {
+                    log(`✅ Login exitoso. Usuario: ${data.user?.email}`, 'success');
+                    log(`🆔 User ID: ${data.user?.id}`, 'success');
+                }
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function logout() {
+            try {
+                await sb.auth.signOut();
+                log('✅ Sesión cerrada', 'success');
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testCRUD() {
+            log('🔍 Probando CRUD autenticado...');
+            
+            try {
+                // Verificar sesión
+                const { data: session } = await sb.auth.getSession();
+                if (!session.session) {
+                    log('❌ No hay sesión activa. Inicia sesión primero.', 'error');
+                    return;
+                }
+                
+                log(`✅ Sesión activa: ${session.session.user.email}`, 'success');
+                
+                // Test CREATE
+                const testVehicle = {
+                    user_id: session.session.user.id,
+                    marca: 'Test',
+                    modelo: 'Test Model',
+                    anio: 2023,
+                    precio: 10000,
+                    descripcion: 'Vehículo de prueba autenticado'
+                };
+                
+                const { data: insertData, error: insertError } = await sb.from('vehiculos').insert(testVehicle).select();
+                
+                if (insertError) {
+                    log(`❌ Error en CREATE: ${insertError.message}`, 'error');
+                    return;
+                }
+                
+                log('✅ CREATE funcionando', 'success');
+                
+                // Test READ
+                const { data: readData, error: readError } = await sb.from('vehiculos').select('*').limit(5);
+                if (readError) {
+                    log(`❌ Error en READ: ${readError.message}`, 'error');
+                } else {
+                    log(`✅ READ funcionando. ${readData.length} registros encontrados`, 'success');
+                }
+                
+                // Test DELETE (eliminar el registro de prueba)
+                if (insertData && insertData[0]) {
+                    const { error: deleteError } = await sb.from('vehiculos').delete().eq('id', insertData[0].id);
+                    if (deleteError) {
+                        log(`❌ Error en DELETE: ${deleteError.message}`, 'error');
+                    } else {
+                        log('✅ DELETE funcionando', 'success');
+                    }
+                }
+                
+            } catch (err) {
+                log(`❌ Error en test CRUD: ${err.message}`, 'error');
+            }
+        }
+        
+        async function listVehicles() {
+            log('🔍 Listando vehículos...');
+            
+            try {
+                const { data, error } = await sb.from('vehiculos').select('*').order('created_at', { ascending: false });
+                if (error) {
+                    log(`❌ Error listando vehículos: ${error.message}`, 'error');
+                } else {
+                    log(`✅ ${data.length} vehículos encontrados:`, 'success');
+                    data.forEach((vehicle, index) => {
+                        log(`${index + 1}. ${vehicle.marca} ${vehicle.modelo} (${vehicle.anio}) - $${vehicle.precio}`, 'success');
+                    });
+                }
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function addVehicle() {
+            const marca = document.getElementById('marca').value;
+            const modelo = document.getElementById('modelo').value;
+            const anio = parseInt(document.getElementById('anio').value);
+            const precio = parseFloat(document.getElementById('precio').value);
+            const descripcion = document.getElementById('descripcion').value;
+            
+            log(`🚗 Agregando vehículo: ${marca} ${modelo}`);
+            
+            try {
+                // Verificar sesión
+                const { data: session } = await sb.auth.getSession();
+                if (!session.session) {
+                    log('❌ No hay sesión activa. Inicia sesión primero.', 'error');
+                    return;
+                }
+                
+                const vehicleData = {
+                    user_id: session.session.user.id,
+                    marca: marca,
+                    modelo: modelo,
+                    anio: anio,
+                    precio: precio,
+                    descripcion: descripcion
+                };
+                
+                const { data, error } = await sb.from('vehiculos').insert(vehicleData).select();
+                
+                if (error) {
+                    log(`❌ Error agregando vehículo: ${error.message}`, 'error');
+                } else {
+                    log(`✅ Vehículo agregado exitosamente: ${data[0].marca} ${data[0].modelo}`, 'success');
+                }
+                
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        // Verificar sesión al cargar
+        window.addEventListener('load', async () => {
+            const { data: session } = await sb.auth.getSession();
+            if (session.session) {
+                log(`✅ Sesión activa: ${session.session.user.email}`, 'success');
+            } else {
+                log('⚠️ No hay sesión activa. Inicia sesión para probar.', 'warning');
+            }
+        });
+    </script>
+</body>
+</html>
