@@ -161,6 +161,20 @@
       background: #c82333;
       transform: translateY(-1px);
     }
+    .btn-warning {
+      background: #ffc107;
+      color: #212529;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-warning:hover {
+      background: #e0a800;
+      transform: translateY(-1px);
+    }
     .table-container {
       overflow-x: auto;
       margin-top: 25px;
@@ -176,17 +190,29 @@
       padding: 15px 12px;
       text-align: left;
       vertical-align: middle;
+      color: #333;
+      border-bottom: 1px solid #e0e0e0;
     }
     th {
       background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
       color: white;
       font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     tr:nth-child(even) {
       background: #f8f9fa;
     }
     tr:hover {
       background: #e3f2fd;
+      transform: scale(1.01);
+      transition: all 0.2s ease;
+    }
+    td {
+      font-weight: 500;
+    }
+    td strong {
+      color: #2c3e50;
+      font-weight: 700;
     }
     td img { 
       border-radius: 8px;
@@ -397,12 +423,44 @@
             <td class="right"><strong>${COP(v.precio)}</strong></td>
             <td>${v.imagen_url ? `<img src="${v.imagen_url}" alt="Imagen ${v.marca} ${v.modelo}" width="90" height="60" loading="lazy" style="object-fit: cover;">` : '<span class="muted"><i class="fas fa-image"></i> Sin imagen</span>'}</td>
             <td class="actions">
+              <button data-id="${v.id}" class="btn-warning edit" title="Editar vehículo">
+                <i class="fas fa-edit"></i>
+              </button>
               <button data-id="${v.id}" class="btn-danger del" title="Eliminar vehículo">
                 <i class="fas fa-trash"></i>
               </button>
             </td>
           </tr>
         `).join('');
+
+        // Conectar botones de editar
+        document.querySelectorAll('.edit').forEach(btn=>{
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-id');
+            const row = btn.closest('tr');
+            const marca = row.querySelector('td:first-child').textContent;
+            const modelo = row.querySelector('td:nth-child(2)').textContent;
+            const anio = row.querySelector('td:nth-child(3)').textContent;
+            const precio = row.querySelector('td:nth-child(4)').textContent.replace(/[^\d]/g, '');
+            
+            // Llenar el formulario con los datos actuales
+            document.getElementById('marca').value = marca;
+            document.getElementById('modelo').value = modelo;
+            document.getElementById('anio').value = anio;
+            document.getElementById('precio').value = precio;
+            
+            // Cambiar el botón a modo edición
+            const addBtn = document.getElementById('add');
+            addBtn.innerHTML = '<i class="fas fa-save"></i> Actualizar vehículo';
+            addBtn.setAttribute('data-edit-id', id);
+            addBtn.classList.add('editing');
+            
+            // Scroll al formulario
+            document.querySelector('.row').scrollIntoView({ behavior: 'smooth' });
+            
+            showMessage('add-msg', `Editando: ${marca} ${modelo}`, false);
+          };
+        });
 
         // Conectar botones de eliminar
         document.querySelectorAll('.del').forEach(btn=>{
@@ -441,12 +499,15 @@
       t = setTimeout(()=> load(e.target.value.trim()), 200);
     });
 
-    // --- Alta de vehículo ---
+    // --- Alta/Edición de vehículo ---
     document.getElementById('add').onclick = async ()=>{
       try {
+        const addBtn = document.getElementById('add');
+        const isEditing = addBtn.classList.contains('editing');
+        const editId = addBtn.getAttribute('data-edit-id');
+        
         const who = await sb.auth.getUser();
         const payload = {
-          user_id: who?.data?.user?.id,
           marca: document.getElementById('marca').value.trim(),
           modelo: document.getElementById('modelo').value.trim(),
           anio: Number(document.getElementById('anio').value),
@@ -454,6 +515,11 @@
           imagen_url: document.getElementById('imagen_url').value.trim() || null,
           descripcion: document.getElementById('descripcion').value.trim() || null
         };
+
+        // Solo agregar user_id si es un nuevo vehículo
+        if (!isEditing) {
+          payload.user_id = who?.data?.user?.id;
+        }
 
         // Validación mejorada
         if (!payload.marca || !payload.modelo || !payload.anio || isNaN(payload.precio)) {
@@ -477,17 +543,30 @@
           return;
         }
 
-        const { error } = await sb.from('vehiculos').insert(payload);
-        if (error) {
-          showMessage('add-msg', `Error al agregar vehículo: ${error.message}`, true);
+        let result;
+        if (isEditing) {
+          // Actualizar vehículo existente
+          result = await sb.from('vehiculos').update(payload).eq('id', editId);
         } else {
-          showMessage('add-msg', '¡Vehículo agregado exitosamente! ✅');
-          // Limpiar inputs
+          // Insertar nuevo vehículo
+          result = await sb.from('vehiculos').insert(payload);
+        }
+
+        if (result.error) {
+          showMessage('add-msg', `Error al ${isEditing ? 'actualizar' : 'agregar'} vehículo: ${result.error.message}`, true);
+        } else {
+          showMessage('add-msg', `¡Vehículo ${isEditing ? 'actualizado' : 'agregado'} exitosamente! ✅`);
+          
+          // Limpiar inputs y resetear botón
           ['marca','modelo','anio','precio','imagen_url','descripcion'].forEach(id => document.getElementById(id).value = '');
+          addBtn.innerHTML = '<i class="fas fa-save"></i> Guardar vehículo';
+          addBtn.removeAttribute('data-edit-id');
+          addBtn.classList.remove('editing');
+          
           load(lastQuery);
         }
       } catch (err) {
-        showMessage('add-msg', 'Error de conexión al agregar vehículo', true);
+        showMessage('add-msg', `Error de conexión al ${document.getElementById('add').classList.contains('editing') ? 'actualizar' : 'agregar'} vehículo`, true);
       }
     };
 
