@@ -317,19 +317,21 @@
       }, 5000);
     }
 
-    // --- Cliente y protección de ruta ---
-    const sb = window.sb;
-    if (!sb) {
-      alert('No se pudo cargar Supabase. Verifica la ruta ./js/supabaseClient.js');
-      throw new Error('Supabase client missing');
-    }
+    // --- Función principal async ---
+    async function initApp() {
+      // --- Cliente y protección de ruta ---
+      const sb = window.sb;
+      if (!sb) {
+        alert('No se pudo cargar Supabase. Verifica la configuración.');
+        throw new Error('Supabase client missing');
+      }
 
-    // Verificar sesión
-    const { data: sess } = await sb.auth.getSession();
-    if (!sess.session) {
-      location.href = './auth.html';
-      return;
-    }
+      // Verificar sesión
+      const { data: sess } = await sb.auth.getSession();
+      if (!sess.session) {
+        location.href = './auth.html';
+        return;
+      }
 
     // Mostrar quién está logueado
     const { data: userData } = await sb.auth.getUser();
@@ -501,6 +503,10 @@
 
     // Carga inicial
     load();
+    } // Cierre de la función initApp
+
+    // Inicializar la aplicación cuando se carga la página
+    initApp();
   </script>
 </body>
 </html>
