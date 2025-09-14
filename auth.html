@@ -111,40 +111,20 @@
     </nav>
     <h1><i class="fas fa-lock"></i> Autenticación</h1>
 
-  <!-- Cliente Supabase directo -->
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-    
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Inicialización de Supabase -->
+  <script>
     // Configuración de Supabase
     const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
     
-    try {
-      // Crear cliente de Supabase
-      const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      
-      // Hacer disponible globalmente
-      window.sb = sb;
-      
-      console.log('✅ Supabase inicializado correctamente');
-      
-      // Remover mensaje de error si existe
-      const errorMsg = document.querySelector('.supabase-error');
-      if (errorMsg) {
-        errorMsg.remove();
-      }
-      
-    } catch (error) {
-      console.error('❌ Error inicializando Supabase:', error);
-      window.sb = null;
-      
-      // Mostrar mensaje de error
-      const errorMsg = document.createElement('div');
-      errorMsg.className = 'supabase-error';
-      errorMsg.style.cssText = 'position:fixed;top:10px;right:10px;background:red;color:white;padding:10px;border-radius:5px;z-index:9999;';
-      errorMsg.textContent = 'Error: No se pudo conectar con Supabase';
-      document.body.appendChild(errorMsg);
-    }
+    // Inicializar Supabase
+    window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    console.log('✅ Supabase inicializado correctamente');
+    console.log('Cliente:', window.sb);
   </script>
 
     <!-- Registro -->
