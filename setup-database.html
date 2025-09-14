@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Database - CompraVenta El Hueso</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Setup de Base de Datos</h1>
+        <p>Este script verificará y configurará la tabla de vehículos en Supabase.</p>
+        
+        <button onclick="testConnection()">1. Probar Conexión</button>
+        <button onclick="checkTable()">2. Verificar Tabla</button>
+        <button onclick="createTable()">3. Crear Tabla</button>
+        <button onclick="insertSampleData()">4. Insertar Datos de Prueba</button>
+        <button onclick="testCRUD()">5. Probar CRUD</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
+        
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function testConnection() {
+            log('🔍 Probando conexión a Supabase...');
+            try {
+                const { data, error } = await sb.from('_health').select('*').limit(1);
+                if (error) {
+                    log(`❌ Error de conexión: ${error.message}`, 'error');
+                } else {
+                    log('✅ Conexión exitosa a Supabase', 'success');
+                }
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function checkTable() {
+            log('🔍 Verificando si existe la tabla vehiculos...');
+            try {
+                const { data, error } = await sb.from('vehiculos').select('*').limit(1);
+                if (error) {
+                    log(`❌ Tabla vehiculos no existe: ${error.message}`, 'error');
+                    log('💡 Necesitas crear la tabla en Supabase', 'error');
+                } else {
+                    log(`✅ Tabla vehiculos existe. Registros encontrados: ${data.length}`, 'success');
+                }
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function createTable() {
+            log('⚠️ No se puede crear tabla desde el frontend. Ve a Supabase Dashboard:', 'error');
+            log('1. Ve a https://supabase.com/dashboard', 'error');
+            log('2. Selecciona tu proyecto', 'error');
+            log('3. Ve a Table Editor', 'error');
+            log('4. Crea una nueva tabla llamada "vehiculos"', 'error');
+            log('5. Agrega estas columnas:', 'error');
+            log('   - id (uuid, primary key, default: gen_random_uuid())', 'error');
+            log('   - marca (text)', 'error');
+            log('   - modelo (text)', 'error');
+            log('   - anio (integer)', 'error');
+            log('   - precio (numeric)', 'error');
+            log('   - imagen_url (text, nullable)', 'error');
+            log('   - descripcion (text, nullable)', 'error');
+            log('   - user_id (uuid, nullable)', 'error');
+            log('   - created_at (timestamp, default: now())', 'error');
+        }
+        
+        async function insertSampleData() {
+            log('🔍 Insertando datos de prueba...');
+            try {
+                const sampleData = [
+                    {
+                        marca: 'Toyota',
+                        modelo: 'Corolla',
+                        anio: 2022,
+                        precio: 25000,
+                        imagen_url: 'https://example.com/corolla.jpg',
+                        descripcion: 'Vehículo en excelente estado'
+                    },
+                    {
+                        marca: 'Honda',
+                        modelo: 'Civic',
+                        anio: 2021,
+                        precio: 23000,
+                        imagen_url: 'https://example.com/civic.jpg',
+                        descripcion: 'Muy buen estado'
+                    }
+                ];
+                
+                const { data, error } = await sb.from('vehiculos').insert(sampleData);
+                if (error) {
+                    log(`❌ Error insertando datos: ${error.message}`, 'error');
+                } else {
+                    log('✅ Datos de prueba insertados correctamente', 'success');
+                }
+            } catch (err) {
+                log(`❌ Error: ${err.message}`, 'error');
+            }
+        }
+        
+        async function testCRUD() {
+            log('🔍 Probando operaciones CRUD...');
+            try {
+                // Test CREATE
+                const { data: insertData, error: insertError } = await sb.from('vehiculos').insert({
+                    marca: 'Test',
+                    modelo: 'Test Model',
+                    anio: 2023,
+                    precio: 10000,
+                    descripcion: 'Vehículo de prueba'
+                }).select();
+                
+                if (insertError) {
+                    log(`❌ Error en CREATE: ${insertError.message}`, 'error');
+                    return;
+                }
+                
+                log('✅ CREATE funcionando', 'success');
+                
+                // Test READ
+                const { data: readData, error: readError } = await sb.from('vehiculos').select('*').limit(5);
+                if (readError) {
+                    log(`❌ Error en READ: ${readError.message}`, 'error');
+                } else {
+                    log(`✅ READ funcionando. ${readData.length} registros encontrados`, 'success');
+                }
+                
+                // Test DELETE (eliminar el registro de prueba)
+                if (insertData && insertData[0]) {
+                    const { error: deleteError } = await sb.from('vehiculos').delete().eq('id', insertData[0].id);
+                    if (deleteError) {
+                        log(`❌ Error en DELETE: ${deleteError.message}`, 'error');
+                    } else {
+                        log('✅ DELETE funcionando', 'success');
+                    }
+                }
+                
+            } catch (err) {
+                log(`❌ Error en test CRUD: ${err.message}`, 'error');
+            }
+        }
+        
+        // Auto-ejecutar test de conexión al cargar
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 1000);
+        });
+    </script>
+</body>
+</html>

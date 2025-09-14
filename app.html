@@ -235,8 +235,21 @@
     </header>
 
     <div class="content">
-      <!-- Cliente Supabase (ruta debe coincidir exactamente con tu repo) -->
-      <script type="module" src="./js/supabaseClient.js"></script>
+      <!-- Supabase CDN oficial compatible con GitHub Pages -->
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+      
+      <!-- Configuración de Supabase -->
+      <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
+        
+        // Crear cliente de Supabase
+        const { createClient } = supabase;
+        window.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        console.log('✅ Supabase inicializado correctamente en app.html');
+      </script>
 
       <h1><i class="fas fa-car"></i> Gestión de Vehículos</h1>
       
