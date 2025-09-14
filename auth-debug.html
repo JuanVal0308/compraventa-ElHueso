@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Debug Auth | CompraVenta El Hueso</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+    .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; }
+    .error { background: #ffebee; color: #c62828; }
+    .success { background: #e8f5e8; color: #2e7d32; }
+    input, button { padding: 10px; margin: 5px; width: 100%; }
+    button { background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Debug de Autenticación Supabase</h1>
+    
+    <div id="debug-info" class="debug">
+      <h3>Información de Debug:</h3>
+      <div id="debug-content">Cargando...</div>
+    </div>
+
+    <h2>Test de Registro</h2>
+    <input type="email" id="email" placeholder="Email" value="test@example.com">
+    <input type="password" id="password" placeholder="Password" value="123456">
+    <button onclick="testSignUp()">Probar Registro</button>
+    
+    <div id="result" class="debug"></div>
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  
+  <script>
+    // Configuración
+    const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
+    
+    let supabaseClient;
+    
+    function log(message, type = 'info') {
+      const debugContent = document.getElementById('debug-content');
+      const timestamp = new Date().toLocaleTimeString();
+      debugContent.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+    }
+    
+    function showResult(message, type = 'info') {
+      const result = document.getElementById('result');
+      result.innerHTML = `<div class="${type}">${message}</div>`;
+    }
+    
+    // Inicializar Supabase
+    try {
+      log('Iniciando configuración de Supabase...');
+      log(`URL: ${SUPABASE_URL}`);
+      log(`API Key: ${SUPABASE_ANON_KEY.substring(0, 20)}...`);
+      
+      const { createClient } = supabase;
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      
+      log('✅ Cliente de Supabase creado exitosamente', 'success');
+      log(`Cliente: ${JSON.stringify(supabaseClient, null, 2)}`);
+      
+    } catch (error) {
+      log(`❌ Error creando cliente: ${error.message}`, 'error');
+    }
+    
+    // Test de registro
+    async function testSignUp() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      log(`Intentando registro con email: ${email}`);
+      
+      try {
+        if (!supabaseClient) {
+          throw new Error('Cliente de Supabase no inicializado');
+        }
+        
+        const { data, error } = await supabaseClient.auth.signUp({
+          email: email,
+          password: password
+        });
+        
+        log(`Respuesta completa: ${JSON.stringify({ data, error }, null, 2)}`);
+        
+        if (error) {
+          log(`❌ Error en registro: ${error.message}`, 'error');
+          showResult(`Error: ${error.message}`, 'error');
+        } else {
+          log(`✅ Registro exitoso: ${JSON.stringify(data, null, 2)}`, 'success');
+          showResult(`¡Registro exitoso! Usuario: ${data.user?.email}`, 'success');
+        }
+        
+      } catch (err) {
+        log(`❌ Error catch: ${err.message}`, 'error');
+        showResult(`Error de conexión: ${err.message}`, 'error');
+      }
+    }
+    
+    // Test de conexión directa
+    async function testDirectConnection() {
+      log('Probando conexión directa a Supabase...');
+      
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          }
+        });
+        
+        log(`Respuesta directa: ${response.status} ${response.statusText}`);
+        
+        if (response.ok) {
+          log('✅ Conexión directa exitosa', 'success');
+        } else {
+          log(`❌ Error en conexión directa: ${response.status}`, 'error');
+        }
+        
+      } catch (err) {
+        log(`❌ Error en conexión directa: ${err.message}`, 'error');
+      }
+    }
+    
+    // Ejecutar test de conexión al cargar
+    window.addEventListener('load', () => {
+      setTimeout(testDirectConnection, 1000);
+    });
+  </script>
+</body>
+</html>
