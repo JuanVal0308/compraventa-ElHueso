@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - CompraVenta El Hueso</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; max-height: 300px; overflow-y: auto; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Simple de Vehículos</h1>
+        
+        <div>
+            <input type="email" id="email" placeholder="Email" value="test@example.com">
+            <input type="password" id="password" placeholder="Password" value="123456">
+            <button onclick="login()">Iniciar Sesión</button>
+        </div>
+        
+        <div>
+            <button onclick="testAddVehicle()">Probar Agregar Vehículo</button>
+            <button onclick="listVehicles()">Listar Vehículos</button>
+        </div>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        const SUPABASE_URL = 'https://sppzbrmslxadplopnker.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwcHpicm1zbHhhZHBsb3Bua2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc3MDYwMDEsImV4cCI6MjA3MzI4MjAwMX0.XXzfsaB052T_KuQHLjqZm3lVKfifd115lZQwIES-cTg';
+        
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logDiv.innerHTML += '<div class="' + className + '">[' + timestamp + '] ' + message + '</div>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            log('Intentando login con: ' + email);
+            
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({ email: email, password: password });
+                if (error) {
+                    log('Error en login: ' + error.message, 'error');
+                } else {
+                    log('Login exitoso. Usuario: ' + data.user.email, 'success');
+                    log('User ID: ' + data.user.id, 'success');
+                }
+            } catch (err) {
+                log('Error: ' + err.message, 'error');
+            }
+        }
+        
+        async function testAddVehicle() {
+            log('Probando agregar vehículo...');
+            
+            try {
+                const { data: session } = await sb.auth.getSession();
+                if (!session.session) {
+                    log('No hay sesión activa. Inicia sesión primero.', 'error');
+                    return;
+                }
+                
+                const vehicleData = {
+                    user_id: session.session.user.id,
+                    marca: 'Toyota',
+                    modelo: 'Corolla',
+                    anio: 2023,
+                    precio: 25000,
+                    descripcion: 'Vehículo de prueba'
+                };
+                
+                const { data, error } = await sb.from('vehiculos').insert(vehicleData).select();
+                
+                if (error) {
+                    log('Error agregando vehículo: ' + error.message, 'error');
+                } else {
+                    log('Vehículo agregado exitosamente: ' + data[0].marca + ' ' + data[0].modelo, 'success');
+                }
+                
+            } catch (err) {
+                log('Error: ' + err.message, 'error');
+            }
+        }
+        
+        async function listVehicles() {
+            log('Listando vehículos...');
+            
+            try {
+                const { data, error } = await sb.from('vehiculos').select('*').order('created_at', { ascending: false });
+                if (error) {
+                    log('Error listando vehículos: ' + error.message, 'error');
+                } else {
+                    log(data.length + ' vehículos encontrados:', 'success');
+                    data.forEach(function(vehicle, index) {
+                        log((index + 1) + '. ' + vehicle.marca + ' ' + vehicle.modelo + ' (' + vehicle.anio + ') - $' + vehicle.precio, 'success');
+                    });
+                }
+            } catch (err) {
+                log('Error: ' + err.message, 'error');
+            }
+        }
+        
+        window.addEventListener('load', function() {
+            log('Página cargada. Inicia sesión para probar.');
+        });
+    </script>
+</body>
+</html>
