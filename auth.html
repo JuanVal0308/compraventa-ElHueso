@@ -113,6 +113,25 @@
 
   <!-- Cliente Supabase -->
   <script type="module" src="./js/supabaseClient.js"></script>
+  
+  <!-- Script para verificar inicialización -->
+  <script>
+    // Verificar que Supabase esté disponible después de cargar
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (!window.sb) {
+          console.error('Supabase no se inicializó correctamente');
+          // Mostrar mensaje de error en la página
+          const errorMsg = document.createElement('div');
+          errorMsg.style.cssText = 'position:fixed;top:10px;right:10px;background:red;color:white;padding:10px;border-radius:5px;z-index:9999;';
+          errorMsg.textContent = 'Error: No se pudo conectar con Supabase';
+          document.body.appendChild(errorMsg);
+        } else {
+          console.log('Supabase inicializado correctamente');
+        }
+      }, 1000);
+    });
+  </script>
 
     <!-- Registro -->
     <section>
@@ -171,15 +190,42 @@
       }
       
       try {
-        const { error } = await window.sb.auth.signUp({ email, password });
+        // Verificar que el cliente de Supabase esté disponible
+        if (!window.sb) {
+          showMessage('su-msg', 'Error: Cliente de Supabase no inicializado', true);
+          return;
+        }
+        
+        // Validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          showMessage('su-msg', 'Por favor ingresa un email válido', true);
+          return;
+        }
+        
+        console.log('Intentando crear usuario con:', { email, password: '***' });
+        const { data, error } = await window.sb.auth.signUp({ email, password });
+        
+        console.log('Respuesta de signUp:', { data, error });
+        
         if (error) {
-          showMessage('su-msg', error.message, true);
+          console.error('Error en signUp:', error);
+          
+          // Manejar errores específicos
+          if (error.message.includes('already registered')) {
+            showMessage('su-msg', 'Este email ya está registrado. Intenta iniciar sesión.', true);
+          } else if (error.message.includes('invalid')) {
+            showMessage('su-msg', 'Email o contraseña inválidos. Verifica los datos.', true);
+          } else {
+            showMessage('su-msg', `Error: ${error.message}`, true);
+          }
         } else {
           showMessage('su-msg', '¡Cuenta creada! Revisa tu correo para confirmar la cuenta.');
           document.getElementById('signup-form').reset();
         }
       } catch (err) {
-        showMessage('su-msg', 'Error de conexión. Intenta nuevamente.', true);
+        console.error('Error catch en signUp:', err);
+        showMessage('su-msg', `Error de conexión: ${err.message}`, true);
       }
     });
 
